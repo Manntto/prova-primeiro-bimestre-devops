@@ -7,6 +7,17 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Verifica se uma string é uma data válida no formato YYYY-MM-DD.
+ */
+function isValidDate(value) {
+  if (!value) return false;
+  const date = new Date(value);
+  return !isNaN(date.getTime());
+}
+
 // ─── Health Check ────────────────────────────────────────────────────────────
 
 app.get('/health', (req, res) => {
@@ -20,6 +31,10 @@ app.post('/reservas', async (req, res) => {
 
   if (!cliente || !data) {
     return res.status(400).json({ erro: 'Os campos "cliente" e "data" são obrigatórios.' });
+  }
+
+  if (!isValidDate(data)) {
+    return res.status(400).json({ erro: 'O campo "data" deve ser uma data válida (ex: 2026-10-10).' });
   }
 
   try {
@@ -75,8 +90,11 @@ app.put('/reservas/:id', async (req, res) => {
     return res.status(400).json({ erro: 'Informe ao menos um campo para atualizar.' });
   }
 
+  if (data && !isValidDate(data)) {
+    return res.status(400).json({ erro: 'O campo "data" deve ser uma data válida (ex: 2026-10-10).' });
+  }
+
   try {
-    // Busca o registro atual para não sobrescrever campos não enviados
     const current = await pool.query('SELECT * FROM reservas WHERE id = $1', [id]);
 
     if (current.rows.length === 0) {
