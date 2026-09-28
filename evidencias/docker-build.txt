@@ -1,0 +1,52 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.01kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:20-alpine
+#2 DONE 0.3s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 99B done
+#3 DONE 0.0s
+
+#4 [builder 1/4] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#4 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.0s done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 118B done
+#5 DONE 0.0s
+
+#6 [builder 4/4] RUN npm install --omit=dev
+#6 CACHED
+
+#7 [stage-1 3/6] COPY --from=builder /app/node_modules ./node_modules
+#7 CACHED
+
+#8 [builder 3/4] COPY package.json ./
+#8 CACHED
+
+#9 [stage-1 4/6] COPY package.json ./
+#9 CACHED
+
+#10 [stage-1 5/6] COPY src/ ./src/
+#10 CACHED
+
+#11 [builder 2/4] WORKDIR /app
+#11 CACHED
+
+#12 [stage-1 6/6] RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+#12 CACHED
+
+#13 exporting to image
+#13 exporting layers done
+#13 exporting manifest sha256:d3ded59424c2d765e7c00cb9d254c841b3d8bb8d796f69dc213a58884f8d28f6 done
+#13 exporting config sha256:60a207b5b996453aef5ac68e49a45c57999d491edf026a6ba5e0b1358d7f0375
+#13 exporting config sha256:60a207b5b996453aef5ac68e49a45c57999d491edf026a6ba5e0b1358d7f0375 done
+#13 exporting attestation manifest sha256:1b86b04b12ee087acd4f1cf43430cc0dc048241c5b1606ced0290c4284df1713 0.0s done
+#13 exporting manifest list sha256:1aafcbc82659f623954384997888de755b2365db4ce00c9130e4e03fe077661b 0.0s done
+#13 naming to docker.io/library/api-reservas:1.0 0.0s done
+#13 unpacking to docker.io/library/api-reservas:1.0 0.0s done
+#13 DONE 0.2s
