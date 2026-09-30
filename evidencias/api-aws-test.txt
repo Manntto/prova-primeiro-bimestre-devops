@@ -1,0 +1,26 @@
+# Testes da API de Reservas na AWS
+# EC2: 98.81.51.238  |  RDS: reservas-rds.ceiks7fjab1o.us-east-1.rds.amazonaws.com
+
+GET /health
+{"status":"ok"}
+
+POST /reservas {"cliente":"Matheus Mantovani","data":"2026-10-01","status":"confirmada"}
+{"id":1,"cliente":"Matheus Mantovani","data":"2026-10-01T00:00:00.000Z","status":"confirmada"}
+
+POST /reservas {"cliente":"Carlos TechNova","data":"2026-10-15"}
+{"id":2,"cliente":"Carlos TechNova","data":"2026-10-15T00:00:00.000Z","status":"pendente"}
+
+GET /reservas
+[{"id":1,...,"status":"confirmada"},{"id":2,...,"status":"pendente"}]
+
+GET /reservas/1
+{"id":1,"cliente":"Matheus Mantovani","data":"2026-10-01T00:00:00.000Z","status":"confirmada"}
+
+PUT /reservas/2 {"status":"confirmada"}
+{"id":2,"cliente":"Carlos TechNova","data":"2026-10-15T00:00:00.000Z","status":"confirmada"}
+
+DELETE /reservas/1
+{"mensagem":"Removida.","reserva":{"id":1,...}}
+
+GET /reservas/1 (apos delete)
+{"erro":"Reserva nao encontrada."} — HTTP 404

@@ -1,15 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-# ─── Atualiza o sistema e instala Node.js 20 ──────────────────────────────────
 dnf update -y
 dnf install -y nodejs git
 
-# ─── Cria diretório da aplicação ──────────────────────────────────────────────
 mkdir -p /opt/api-reservas
 cd /opt/api-reservas
 
-# ─── Cria o package.json ──────────────────────────────────────────────────────
 cat > package.json << 'PKGJSON'
 {
   "name": "api-reservas",
@@ -26,7 +23,6 @@ PKGJSON
 
 npm install --omit=dev
 
-# ─── Cria o .env com variáveis passadas pelo Terraform ───────────────────────
 cat > .env << ENVFILE
 PORT=${api_port}
 DB_HOST=${db_host}
@@ -36,7 +32,6 @@ DB_USER=${db_user}
 DB_PASSWORD=${db_password}
 ENVFILE
 
-# ─── Cria a estrutura da aplicação ───────────────────────────────────────────
 mkdir -p src
 
 cat > src/db.js << 'DBJS'
@@ -47,6 +42,7 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user:     process.env.DB_USER,
   password: process.env.DB_PASSWORD,
+  ssl:      { rejectUnauthorized: false }
 });
 async function initDb() {
   await pool.query(`
@@ -73,7 +69,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.post('/reservas', async (req, res) => {
   const { cliente, data, status } = req.body;
-  if (!cliente || !data) return res.status(400).json({ erro: 'cliente e data são obrigatórios.' });
+  if (!cliente || !data) return res.status(400).json({ erro: 'cliente e data sao obrigatorios.' });
   try {
     const r = await pool.query('INSERT INTO reservas (cliente,data,status) VALUES ($1,$2,$3) RETURNING *', [cliente, data, status||'pendente']);
     res.status(201).json(r.rows[0]);
@@ -88,7 +84,7 @@ app.get('/reservas', async (req, res) => {
 app.get('/reservas/:id', async (req, res) => {
   try {
     const r = await pool.query('SELECT * FROM reservas WHERE id=$1', [req.params.id]);
-    if (!r.rows.length) return res.status(404).json({ erro: 'Reserva não encontrada.' });
+    if (!r.rows.length) return res.status(404).json({ erro: 'Reserva nao encontrada.' });
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });
@@ -97,7 +93,7 @@ app.put('/reservas/:id', async (req, res) => {
   const { cliente, data, status } = req.body;
   try {
     const cur = await pool.query('SELECT * FROM reservas WHERE id=$1', [req.params.id]);
-    if (!cur.rows.length) return res.status(404).json({ erro: 'Reserva não encontrada.' });
+    if (!cur.rows.length) return res.status(404).json({ erro: 'Reserva nao encontrada.' });
     const o = cur.rows[0];
     const r = await pool.query('UPDATE reservas SET cliente=$1,data=$2,status=$3 WHERE id=$4 RETURNING *',
       [cliente??o.cliente, data??o.data, status??o.status, req.params.id]);
@@ -108,7 +104,7 @@ app.put('/reservas/:id', async (req, res) => {
 app.delete('/reservas/:id', async (req, res) => {
   try {
     const r = await pool.query('DELETE FROM reservas WHERE id=$1 RETURNING *', [req.params.id]);
-    if (!r.rows.length) return res.status(404).json({ erro: 'Reserva não encontrada.' });
+    if (!r.rows.length) return res.status(404).json({ erro: 'Reserva nao encontrada.' });
     res.json({ mensagem: 'Removida.', reserva: r.rows[0] });
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });
@@ -119,7 +115,6 @@ app.listen(PORT, async () => {
 });
 INDEXJS
 
-# ─── Cria serviço systemd para a API ─────────────────────────────────────────
 cat > /etc/systemd/system/api-reservas.service << 'SERVICE'
 [Unit]
 Description=API de Reservas TechNova

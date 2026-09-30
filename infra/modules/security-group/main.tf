@@ -1,11 +1,10 @@
-# ─── Security Group — EC2 ─────────────────────────────────────────────────────
+# --- Security Group: EC2 ------------------------------------------------------
 
 resource "aws_security_group" "ec2" {
   name        = "${var.project}-sg-ec2"
-  description = "Security Group da EC2 — permite SSH e porta da API"
+  description = "Security Group da EC2 - permite SSH e porta da API"
   vpc_id      = var.vpc_id
 
-  # SSH
   ingress {
     description = "SSH"
     from_port   = 22
@@ -14,7 +13,6 @@ resource "aws_security_group" "ec2" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # API de Reservas
   ingress {
     description = "API Node.js"
     from_port   = 3000
@@ -23,7 +21,6 @@ resource "aws_security_group" "ec2" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Egress livre
   egress {
     description = "All outbound"
     from_port   = 0
@@ -35,14 +32,13 @@ resource "aws_security_group" "ec2" {
   tags = merge(var.tags, { Name = "${var.project}-sg-ec2" })
 }
 
-# ─── Security Group — RDS ─────────────────────────────────────────────────────
+# --- Security Group: RDS ------------------------------------------------------
 
 resource "aws_security_group" "rds" {
   name        = "${var.project}-sg-rds"
-  description = "Security Group do RDS — acesso PostgreSQL apenas da EC2"
+  description = "Security Group do RDS - acesso PostgreSQL apenas da EC2"
   vpc_id      = var.vpc_id
 
-  # PostgreSQL — somente do SG da EC2 (menor privilégio)
   ingress {
     description     = "PostgreSQL da EC2"
     from_port       = 5432
@@ -51,7 +47,6 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.ec2.id]
   }
 
-  # Sem egress externo para o banco
   egress {
     description = "All outbound"
     from_port   = 0

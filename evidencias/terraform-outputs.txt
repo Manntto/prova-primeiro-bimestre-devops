@@ -1,0 +1,85 @@
+api_url = "http://98.81.51.238:3000"
+ec2_public_dns = "ec2-98-81-51-238.compute-1.amazonaws.com"
+ec2_public_ip = "98.81.51.238"
+rds_endpoint = "reservas-rds.ceiks7fjab1o.us-east-1.rds.amazonaws.com:5432"
+rds_host = "reservas-rds.ceiks7fjab1o.us-east-1.rds.amazonaws.com"
+# module.ec2.data.aws_ami.amazon_linux:
+data "aws_ami" "amazon_linux" {
+    architecture          = "x86_64"
+    arn                   = "arn:aws:ec2:us-east-1::image/ami-09245a0b0d835293b"
+    block_device_mappings = [
+        {
+            device_name  = "/dev/xvda"
+            ebs          = {
+                "delete_on_termination"      = "true"
+                "encrypted"                  = "false"
+                "iops"                       = "3000"
+                "snapshot_id"                = "snap-0316f61d145b3fc41"
+                "throughput"                 = "125"
+                "volume_initialization_rate" = "0"
+                "volume_size"                = "2"
+                "volume_type"                = "gp3"
+            }
+            no_device    = [90mnull[0m[0m
+            virtual_name = [90mnull[0m[0m
+        },
+    ]
+    boot_mode             = "uefi-preferred"
+    creation_date         = "2026-09-24T19:38:37.000Z"
+    deprecation_time      = "2026-12-23T19:40:00.000Z"
+    description           = "Amazon Linux 2023 AMI 2023.12.20260928.0 x86_64 Minimal HVM kernel-6.12"
+    ena_support           = true
+    hypervisor            = "xen"
+    id                    = "ami-09245a0b0d835293b"
+    image_id              = "ami-09245a0b0d835293b"
+    image_location        = "amazon/al2023-ami-minimal-2023.12.20260928.0-kernel-6.12-x86_64"
+    image_owner_alias     = "amazon"
+    image_type            = "machine"
+    imds_support          = "v2.0"
+    include_deprecated    = false
+    kernel_id             = [90mnull[0m[0m
+    last_launched_time    = [90mnull[0m[0m
+    most_recent           = true
+    name                  = "al2023-ami-minimal-2023.12.20260928.0-kernel-6.12-x86_64"
+    owner_id              = "137112412989"
+    owners                = [
+        "amazon",
+    ]
+    platform              = [90mnull[0m[0m
+    platform_details      = "Linux/UNIX"
+    product_codes         = []
+    public                = true
+    ramdisk_id            = [90mnull[0m[0m
+    root_device_name      = "/dev/xvda"
+    root_device_type      = "ebs"
+    root_snapshot_id      = "snap-0316f61d145b3fc41"
+    sriov_net_support     = "simple"
+    state                 = "available"
+    state_reason          = {
+        "code"    = "UNSET"
+        "message" = "UNSET"
+    }
+    tags                  = {}
+    tpm_support           = [90mnull[0m[0m
+    usage_operation       = "RunInstances"
+    virtualization_type   = "hvm"
+
+    filter {
+        name   = "name"
+        values = [
+            "al2023-ami-*-x86_64",
+        ]
+    }
+    filter {
+        name   = "virtualization-type"
+        values = [
+            "hvm",
+        ]
+    }
+}
+
+# module.ec2.aws_instance.api:
+resource "aws_instance" "api" {
+    ami                                  = "ami-09245a0b0d835293b"
+    arn                                  = "arn:aws:ec2:us-east-1:092435415202:instance/i-04647fcf506fe015d"
+    associate_public_ip_address          = true
