@@ -9,60 +9,94 @@
 
 ## Questão 1 — A Jornada Completa (Aulas 01 a 07)
 
-A construção da API de Reservas da TechNova seguiu uma ordem que não foi aleatória: cada etapa dependia da anterior para fazer sentido. Comecei pelo Git (Aula 01) porque qualquer projeto sem versionamento está construído sobre areia. Criei o repositório público no GitHub, defini o `.gitignore` já no primeiro commit — isso foi importante para garantir que nenhum arquivo sensível como `.env`, `.tfstate` ou `.pem` fosse parar no repositório por acidente. Usei Conventional Commits desde o início (`chore:`, `feat:`, `docs:`, `fix:`) e trabalhei com feature branches, fazendo merge com `--no-ff` para que o histórico mostrasse o fluxo real de desenvolvimento.
+Nesta jornada da prova realizei a sequência da seguinte forma: primeiro ponto crucial para um projeto é o GIT/GITHUB, para ter o versionamento e conseguir recuperar caso algo aconteça errado e conseguir subir para o site e conseguir ver o progresso do projeto. Logo após isso segui com o Docker para começar a construção do ambiente e com o container isolado antes de orquestar o mesmo (AULA 01).
 
-Com o repositório estruturado, passei para a aplicação (Aula 01 — Docker). Criei a API Node.js com Express implementando o CRUD completo de reservas: POST, GET, GET/:id, PUT, DELETE e o endpoint `/health`. A persistência dos dados foi feita diretamente no PostgreSQL usando a biblioteca `pg`, sem nenhum dado em memória. Só depois de ter a aplicação funcionando é que criei o Dockerfile — um multi-stage build com `node:20-alpine`, instalando apenas as dependências de produção no stage final e executando com um usuário não-root por segurança.
+Após isso segui com o Docker Compose para construir de forma local e rodar API + Banco (AULA 02).
 
-O Docker Compose (Aula 02) foi o próximo passo natural: queria um ambiente local completo subindo com um único comando. Configurei o serviço `db` com PostgreSQL 15, volume nomeado para persistência, healthcheck com `pg_isready`, e o serviço `api` com `depends_on: condition: service_healthy` — a API só sobe depois que o banco estiver pronto. Tudo em uma rede bridge customizada chamada `reservas-net`.
+Agora que fizemos todo o ambiente de forma local fomos à construção das VPC, EC2, usamos a AWS para trabalharmos juntamente com o Academy para termos testes reais (AULA 03/04).
 
-Antes de partir para a AWS, criei o backend de remote state (Aula 06) — e aprendi que isso precisa ser feito antes de qualquer `terraform init` no projeto principal. Provisionei o bucket S3 `tfstate-reservas-1120245` com versionamento e encriptação AES256, e a tabela DynamoDB `tflock-reservas-1120245` para locking. Só depois disso configurei o `backend "s3"` no `providers.tf` do projeto principal.
+Em seguida entrou o RDS — depois de ter criado a VPC com as subnets era o momento de criar o banco gerenciado (AULA 05).
 
-Com o backend pronto, criei os quatro módulos Terraform (Aula 06): `vpc`, `security-group`, `ec2` e `rds`. A VPC (Aulas 03 e 04) foi a base: 10.0.0.0/16 com duas subnets públicas e duas privadas em us-east-1a e us-east-1b, Internet Gateway e Route Table para as subnets públicas. O módulo de Security Group (Aula 04) implementou o princípio do menor privilégio: a EC2 expõe as portas 22 e 3000, e o RDS aceita conexões na porta 5432 apenas a partir do Security Group da EC2. O módulo RDS (Aula 05) criou o PostgreSQL 15 nas subnets privadas com `publicly_accessible = false` e `storage_encrypted = true`. O módulo EC2 usou o `LabInstanceProfile` em vez de criar credenciais IAM próprias — restrição do Learner Lab que aprendi a respeitar.
+O remote state fez parte do projeto a partir deste momento, antes dos módulos principais, porque o backend precisa existir antes do `terraform init` (AULA 06). Feito isso, iniciamos os módulos para a VPC e alimentando o input de um módulo para outro — EC2/RDS (AULA 06).
 
-A composição entre módulos (Aula 06) foi onde tudo se conectou: o output `vpc_id` alimentou o módulo de security group, os `private_subnet_ids` foram para o módulo RDS, e o `host` do RDS foi passado diretamente para o userdata da EC2. A IA como copiloto (Aulas 02 e 07) esteve presente em todas as etapas, mas cada arquivo gerado foi revisado e ajustado antes de ser aplicado.
+A IA esteve presente lado a lado neste projeto, mas não como dominante, e cada processo foi validado por mim antes de ser aplicado.
 
 ---
 
 ## Questão 2 — O Processo com IA como Copiloto
 
-Utilizei o **Kiro** como ferramenta de IA durante todo o desenvolvimento. O Kiro opera em modo de desenvolvimento guiado, o que significou que as interações foram contextuais — eu descrevia o que precisava construir e o Kiro gerava os arquivos diretamente no repositório, sem precisar copiar e colar código de uma janela para outra.
+Utilizei o **Kiro** como copiloto neste projeto usando o fluxo Spec-Driven Development. A ferramenta me gerou os módulos do Terraform, Dockerfile, Docker Compose e API, sendo que cada processo precisava da minha aprovação para executar. Sendo assertivo nesta parte do projeto, isso economizou horas de trabalho e escrita de código.
 
-As partes onde o Kiro economizou mais tempo foram a estrutura inicial dos módulos Terraform e o boilerplate da API Node.js. Criar um módulo com `main.tf`, `variables.tf` e `outputs.tf` do zero é repetitivo e sujeito a erros de digitação — o Kiro gerou todos os quatro módulos de forma consistente, com os tipos corretos de variáveis, outputs bem nomeados e tags padronizadas em todos os recursos.
+### Prompts principais utilizados
 
-Porém, houve momentos em que o código gerado precisou de correção. O primeiro problema foi com o provider AWS 5.x no backend S3: o Kiro gerou o `aws_s3_bucket` corretamente, mas o Learner Lab bloqueia a chamada `s3:GetBucketObjectLockConfiguration` via Service Control Policy da organização — algo que nenhuma documentação padrão menciona. O apply quebrou no primeiro recurso e precisei diagnosticar o erro, entender a restrição e resolver via CLI. O segundo problema foram os caracteres especiais (travessão `—`) nas descriptions dos Security Groups — a AWS só aceita ASCII puro, e o Kiro usou caracteres tipográficos que causaram erro na criação. O terceiro foi a senha do RDS contendo `@`, que é caractere inválido para o PostgreSQL no RDS.
+A conversa com o Kiro foi conduzida dentro do próprio IDE, com mensagens direcionadas. Os prompts mais relevantes foram:
 
-Esses três problemas não foram falhas graves, mas foram importantes: me forçaram a ler as mensagens de erro com atenção, entender o que estava acontecendo na AWS e corrigi-los com conhecimento real, não só tentativa e erro. Se tivesse aceitado o código sem revisar o plan, teria aplicado uma senha inválida diretamente no banco e levado mais tempo para encontrar o problema.
+**Prompt 1 — Definindo o papel da IA:**
+> "Kiro, seja especialista em DEVOPS e AWS, e se integre da prova-primeiro-bimestre.md e o que já foi realizado"
 
-Comparando com fazer manualmente: estimo que o Kiro economizou cerca de 4 a 5 horas de trabalho, principalmente na escrita dos módulos Terraform, do userdata.sh e da API completa. Por outro lado, a IA não tem como saber as restrições específicas de um ambiente como o AWS Academy Learner Lab — esse conhecimento precisou vir de mim, das aulas e dos erros que apareceram durante o processo.
+Esse prompt foi fundamental porque definiu o escopo da IA logo no início. Ao pedir que ela fosse especialista em DevOps e AWS e lesse o enunciado da prova, o Kiro conseguiu entender o contexto completo — Learner Lab, restrições de IAM, módulos Terraform, CRUD com PostgreSQL — e trabalhar dentro dessas restrições sem que eu precisasse repetir o contexto em cada mensagem.
+
+**Prompt 2 — Solicitando evidências textuais:**
+> "O professor pede prints como evidência, vamos realizar essa parte também"
+
+O Kiro gerou os arquivos `.txt` de evidência (`api-local-test.txt`, `git-log.txt`, `compose-ps.txt`) executando os comandos reais contra os containers locais e capturando os outputs. Também atualizou o `entrega.md` com todos os blocos de evidência formatados.
+
+**Prompt 3 — Roteiro de prints:**
+> "Os prints eu mesmo faço a captura, me sinalize dos pontos para eu realizar"
+
+O Kiro criou um roteiro numerado com 12 prints, o comando exato a rodar antes de cada captura e o que cada print deveria mostrar — desde o `git log` até o `terraform destroy`. Isso organizou o processo de documentação de forma eficiente.
+
+**Prompt 4 — Erro de token expirado:**
+> "matheus-mantovani@Manto-Linux:~/...$ terraform destroy -auto-approve — Error: validating provider credentials: ExpiredToken"
+
+Aqui a IA diagnosticou o problema imediatamente: token AWS expirado no Learner Lab. Orientou a renovar as credenciais via AWS Details → AWS CLI e colar no `~/.aws/credentials`. Quando o problema evoluiu para bucket S3 pertencente a outra conta (Lab expirado), o Kiro identificou que o nome do bucket é global na AWS, criou um novo bucket com nome baseado no Account ID atual (`tfstate-reservas-180239260670`) e atualizou o `providers.tf` automaticamente.
+
+### O que a IA gerou bem
+
+- Estrutura completa dos módulos Terraform (`vpc`, `security-group`, `ec2`, `rds`) com composição entre eles
+- `user_data.sh` para a EC2 (instalação do Docker, pull da imagem, execução com variáveis de ambiente do RDS)
+- CRUD completo da API Node.js/Express com PostgreSQL
+- `Dockerfile` multi-stage com usuário não-root
+- `docker-compose.yml` com healthcheck, rede customizada e `depends_on` com condição
+- Diagnóstico e resolução de erros de infraestrutura em tempo real
+
+### O que precisou de ajuste manual
+
+- Restrições do Learner Lab não eram conhecidas pela IA inicialmente — precisei informar que não é possível criar IAM users/roles e que deve usar `LabRole`/`LabInstanceProfile`
+- Ajuste de credenciais temporárias (`aws_session_token`) que o Kiro não consegue acessar diretamente
+- Validação visual de cada `terraform plan` antes do `apply` — responsabilidade minha, não da IA
+
+### Comparação: com IA vs. sem IA
+
+Sem a IA, estimo que a parte de Terraform (4 módulos + composição + remote state) levaria entre 4 e 6 horas só de escrita e debugging. Com o Kiro, foi aproximadamente 1 hora incluindo os ajustes. O maior ganho foi na estrutura dos módulos e no `user_data.sh` — partes que exigem bastante atenção a detalhes e são propensas a erros difíceis de diagnosticar.
 
 ---
 
 ## Questão 3 — Infraestrutura, Segurança e o Learner Lab
 
-A arquitetura AWS provisionada segue um padrão clássico de separação entre camadas públicas e privadas. A EC2 foi colocada na subnet pública porque precisa de IP público para receber requisições externas na porta 3000. O RDS foi colocado nas subnets privadas porque um banco de dados nunca deve ser diretamente acessível pela internet — a flag `publicly_accessible = false` garante isso no nível da AWS, e o Security Group garante no nível de rede: a única origem que pode conectar na porta 5432 é o próprio Security Group da EC2.
+A arquitetura está organizada da seguinte forma: a EC2 fica na subnet pública porque precisa de IP público para receber requisições externas na porta 3000. Já o RDS fica na subnet privada porque o banco de dados nunca deve estar exposto à internet — o atributo `publicly_accessible = false` garante isso no Terraform.
 
-Esse modelo segue o princípio do menor privilégio: cada recurso tem acesso apenas ao que precisa, nada a mais. A EC2 pode receber SSH (22) e requisições da API (3000). O RDS só pode receber conexões PostgreSQL (5432) vindas da EC2. Não há regra que permita acesso direto ao banco de qualquer IP externo.
+O único caminho até o banco é pela porta 5432, exclusivamente a partir do Security Group da EC2. Isso implementa o princípio do menor privilégio: nem SSH, nem acesso externo, apenas a aplicação que precisa do banco.
 
-O uso do `LabRole` e do `LabInstanceProfile` foi uma das principais adaptações necessárias para o ambiente do AWS Academy. Em um ambiente real, criaríamos uma IAM Role específica com as permissões mínimas necessárias. No Learner Lab, a criação de IAM users, groups ou roles é bloqueada por policy organizacional. A solução foi usar a role pré-existente `LabRole` para as operações Terraform (via credenciais temporárias) e o `LabInstanceProfile` associado à EC2 — isso permite que a instância se comunique com serviços AWS sem precisar de credenciais hardcoded no código.
+O Learner Lab não permite criar IAM users/groups/roles. A `LabRole` já existe com as permissões necessárias, e o `LabInstanceProfile` é associado à EC2 para que ela acesse serviços da AWS sem credenciais hardcoded. As credenciais temporárias de cada sessão (`aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`) são configuradas via `~/.aws/credentials` e expiram com o Lab — o que obriga a renovação a cada sessão, um comportamento mais seguro do que credenciais permanentes.
 
-As credenciais temporárias do Learner Lab trazem um desafio prático importante: elas expiram a cada sessão (geralmente em poucas horas). Isso significa que qualquer `terraform apply` que demore mais que a sessão atual vai falhar com `ExpiredToken`. A solução é reiniciar o Lab e atualizar o `~/.aws/credentials` antes de continuar. Em um ambiente real com credenciais de longa duração isso não seria um problema, mas no contexto do Lab é algo que precisa ser gerenciado ativamente.
-
-Outra restrição específica do Lab foi o bloqueio de `s3:GetBucketObjectLockConfiguration` via SCP — o provider Terraform 5.x tenta ler essa configuração ao gerenciar buckets S3, e o Lab nega a chamada. A solução foi configurar o bucket via AWS CLI diretamente, o que é inclusive a abordagem recomendada pela própria documentação do Terraform para o bucket de remote state.
+Um ajuste importante que o Lab exigiu foi o nome do bucket de remote state: como o Lab criou uma conta AWS nova ao expirar, o bucket da sessão anterior ficou inacessível (pertencia a outra conta). A solução foi criar um bucket com nome baseado no Account ID atual para garantir unicidade global.
 
 ---
 
 ## Questão 4 — Validação e Responsabilidade
 
-Antes de cada `terraform apply`, apliquei um checklist de validação que foi se tornando mais rigoroso conforme o projeto crescia. O primeiro passo sempre foi `terraform validate`, que verifica erros de sintaxe e referências inválidas entre módulos. O segundo foi `terraform plan`, que mostrou exatamente quais recursos seriam criados, modificados ou destruídos — li o output completo antes de confirmar qualquer apply.
+Apliquei um checklist por tópicos pedindo ao Kiro que me devolvesse os itens para trabalharmos do 1 ao 7. Optei por essa estratégia para ter espaços de trabalho definidos e mais facilidade na hora de corrigir erros em etapas isoladas.
 
-Além da validação técnica, revisei pontos específicos de segurança antes de aplicar: confirmei que `publicly_accessible = false` e `storage_encrypted = true` estavam presentes no módulo RDS; verifiquei que o Security Group do RDS aceitava conexões apenas do SG da EC2 e não de `0.0.0.0/0`; confirmei que `iam_instance_profile = "LabInstanceProfile"` estava correto na EC2; e verifiquei que todos os arquivos sensíveis estavam no `.gitignore` antes de qualquer push.
+Uma prática que adotei para melhorar o filtro da IA foi definir o papel dela logo no primeiro prompt: "seja especialista em DevOps e AWS". Isso funcionou como contexto persistente, evitando que a IA gerasse soluções genéricas sem considerar as restrições do Learner Lab.
 
-Se tivesse aceitado o código da IA sem revisar, os erros encontrados durante este projeto teriam causado problemas maiores: uma senha inválida no RDS teria passado pelo plan mas falhado no apply, deixando recursos parcialmente criados no estado do Terraform — um cenário mais difícil de resolver do que simplesmente corrigir a variável antes de aplicar. Os caracteres especiais nos Security Groups teriam causado o mesmo problema.
+O processo de validação antes de cada `terraform apply` seguiu esta sequência:
+1. `terraform validate` — zero erros de sintaxe
+2. `terraform plan` — leitura dos 14 recursos planejados, confirmação de que nada seria destruído por engano
+3. Revisão manual do plan: verificar `publicly_accessible = false`, `storage_encrypted = true`, `iam_instance_profile = "LabInstanceProfile"`, regras de SG
+4. Verificar que `.env`, `*.tfstate`, `.terraform/` estavam no `.gitignore` antes de qualquer push
 
-A evolução Git → Docker → Compose → Terraform → Módulos foi fundamental para desenvolver esse senso crítico. Cada camada ensina um tipo diferente de responsabilidade: o Git ensina que cada mudança deve ser intencional e rastreável; o Docker ensina que o ambiente de execução importa tanto quanto o código; o Compose ensina que dependências entre serviços precisam ser declaradas explicitamente; o Terraform ensina que infraestrutura tem estado e que mudanças podem ser destrutivas. Quando cheguei aos módulos e à IA como copiloto, já tinha o vocabulário necessário para entender o que o código gerado estava fazendo — e para identificar quando algo estava errado.
+Se eu tivesse aceitado o código da IA sem revisar, o risco principal seria subir credenciais ou arquivos de state para o repositório público, ou criar recursos com permissões excessivas (como RDS publicamente acessível). A revisão manual de cada `plan` foi a camada de segurança mais importante do processo.
 
-Usar IA com responsabilidade não significa desconfiar de tudo que ela gera. Significa ter o conhecimento para saber o que revisar, o que testar e o que questionar. As aulas do bimestre construíram exatamente esse conhecimento.
+A evolução Git → Docker → Terraform → Módulos preparou para usar IA com responsabilidade porque cada camada não pode conter erros silenciosos: o Git expõe o histórico, o Docker falha no build se algo estiver errado, o Terraform mostra o plan antes de aplicar. Essa cadeia de validações explícitas criou o hábito de revisar antes de executar — que é exatamente o que deve ser feito com código gerado por IA. Uma frase que resume bem: a IA acelera a escrita, mas a responsabilidade pela revisão é sempre do desenvolvedor.
 
----
-
-*Relatório escrito com base na experiência real de desenvolvimento da prova, com suporte do Kiro como ferramenta de IA.*
