@@ -1,0 +1,28 @@
+# Teste CRUD completo — API de Reservas (ambiente local: Docker Compose)
+# Data: 2026-10-01 13:53:46
+# Host: localhost:3000  |  Banco: PostgreSQL via Docker (reservas-db)
+
+=== GET /health ===
+{"status":"ok","timestamp":"2026-10-01T16:53:46.433Z"}
+
+=== POST /reservas — cliente Matheus Mantovani ===
+{"id":5,"cliente":"Matheus Mantovani","data":"2026-10-01T00:00:00.000Z","status":"confirmada"}
+
+=== POST /reservas — cliente Carlos TechNova ===
+{"id":6,"cliente":"Carlos TechNova","data":"2026-10-15T00:00:00.000Z","status":"pendente"}
+
+=== GET /reservas — lista todas ===
+[{"id":2,"cliente":"Carlos Souza","data":"2026-10-15T00:00:00.000Z","status":"confirmada"},{"id":4,"cliente":"Carlos TechNova","data":"2026-10-15T00:00:00.000Z","status":"confirmada"},{"id":5,"cliente":"Matheus Mantovani","data":"2026-10-01T00:00:00.000Z","status":"confirmada"},{"id":6,"cliente":"Carlos TechNova","data":"2026-10-15T00:00:00.000Z","status":"pendente"}]
+
+=== GET /reservas/5 — busca por id ===
+{"id":5,"cliente":"Matheus Mantovani","data":"2026-10-01T00:00:00.000Z","status":"confirmada"}
+
+=== PUT /reservas/6 — atualiza status ===
+{"id":6,"cliente":"Carlos TechNova","data":"2026-10-15T00:00:00.000Z","status":"confirmada"}
+
+=== DELETE /reservas/5 — remove reserva ===
+{"mensagem":"Reserva removida com sucesso.","reserva":{"id":5,"cliente":"Matheus Mantovani","data":"2026-10-01T00:00:00.000Z","status":"confirmada"}}
+
+=== GET /reservas/5 apos delete — esperado 404 ===
+{"erro":"Reserva não encontrada."}
+HTTP Status: 404

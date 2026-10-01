@@ -1,0 +1,17 @@
+* 94dc65a (HEAD -> main, origin/main) docs: add relatorio.md with 4 questoes
+* b19e8d9 feat: add Terraform root module composition and deploy to AWS
+* 44fc3fd feat: add Terraform modules (vpc, security-group, ec2, rds) and root composition
+* 3beaa80 chore: add remote state backend (S3 + DynamoDB) for Terraform
+*   5afe4b6 feat: merge feature/api-validation into main
+|\  
+| * 72198dd (origin/feature/api-validation, feature/api-validation) fix: add date validation on POST and PUT reservas routes
+|/  
+*   61acaae feat: merge feature/evidencias into main
+|\  
+| * b9dd99d (origin/feature/evidencias, feature/evidencias) docs: add evidence folder documentation
+|/  
+* d89c7bf feat: add docker-compose with API and PostgreSQL, healthcheck and named volume
+* fa19eac feat: add Dockerfile multi-stage with non-root user and build evidence
+* 51bb28d feat: add reservas API with full CRUD and PostgreSQL connection
+* 14f666e chore: update gitignore, readme and add env example
+* adabb52 chore: initial project setup
